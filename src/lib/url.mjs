@@ -1,5 +1,5 @@
 // Pure URL parsing + Azure DevOps REST/web URL builders.
-// No DOM, no Chrome APIs — importable by the popup and by Node tests.
+// No DOM, no Chrome APIs. Importable by the popup and by Node tests.
 
 const WI_EDIT = /\/_workitems\/edit\/(\d+)/i;
 const DEFAULT_COMMENTS_API = '7.1-preview.4';
@@ -55,7 +55,7 @@ export function buildCommentsUrl(info, { top = 200, apiVersion = DEFAULT_COMMENT
     `?$top=${top}&$expand=renderedText&api-version=${apiVersion}`;
 }
 
-/** Web (browser) URL for a work item — used for the "View in Azure DevOps" / Parent links. */
+/** Web (browser) URL for a work item, used for the "View in Azure DevOps" / Parent links. */
 export function buildWorkItemUrl(info, id = info.workItemId) {
   return `${restBase(info)}/_workitems/edit/${id}`;
 }

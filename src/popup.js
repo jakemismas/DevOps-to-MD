@@ -92,7 +92,7 @@ async function runHarvest(needComments) {
 async function applyHarvest(payload, { initial }) {
   if (!payload.embedded) {
     els.generate.disabled = true;
-    setStatus('No work item data found on this page — reload it and try again.', 'warn');
+    setStatus('No work item data found on this page. Reload it and try again.', 'warn');
     return null;
   }
   if (payload.embeddedWorkItemId != null && payload.embeddedWorkItemId !== state.info.workItemId) {
@@ -142,7 +142,7 @@ async function onGenerate() {
   const commentsFailed = needComments && payload.commentsAttempted &&
     model.comments.length === 0 && (payload.errors || []).some((e) => e.indexOf('comments:') === 0);
   if (commentsFailed) {
-    setStatus('Could not load comments — make sure you are signed in and reload the work item.', 'warn');
+    setStatus('Could not load comments. Make sure you are signed in, then reload the work item.', 'warn');
   } else if (model.commentsTruncated) {
     setStatus('Note: only the first pages of a very long discussion were included.', 'warn');
   } else {
@@ -161,7 +161,7 @@ async function onGenerate() {
 function renderSections() {
   els.sectionList.innerHTML = '';
   if (!state.sectionList.length) {
-    els.sectionList.textContent = 'No sections detected — reload the work item.';
+    els.sectionList.textContent = 'No sections detected. Reload the work item.';
     return;
   }
   for (const s of state.sectionList) {

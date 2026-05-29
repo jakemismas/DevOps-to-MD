@@ -1,12 +1,12 @@
 // Injected into the Azure DevOps page via chrome.scripting.executeScript({func: harvest}).
 //
 // IMPORTANT: this function is serialized and runs in the page (ISOLATED world). It must
-// be FULLY SELF-CONTAINED — no imports, no references to module-scope variables. All
+// be FULLY SELF-CONTAINED (no imports, no references to module-scope variables). All
 // inputs arrive via `args`. It returns plain JSON (executeScript awaits the Promise).
 //
 // It reads the embedded #dataProviders blob (DOM) and, when asked, fetches the work
 // item's discussion comments with the user's existing session cookies (same-origin
-// fetch, credentials:'include' — no PAT). The comment paging loop mirrors
+// fetch, credentials:'include', no PAT). The comment paging loop mirrors
 // src/lib/comments.mjs:fetchAllComments (kept in sync deliberately); it also falls back
 // across API versions if the preview version is rejected.
 

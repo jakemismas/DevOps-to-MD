@@ -56,7 +56,7 @@ test('full pipeline produces correct Markdown with the real converter', { skip }
   assert.match(md, /`dart--qa01\.sandbox\.lightning\.force\.com/);         // backticks preserved
   assert.match(md, /## Deployment Instructions\n\n## Components to Deploy/); // markdown passthrough (own H2)
   assert.match(md, /## Parent\n\n\[451728\]\(/);                    // id-only link
-  assert.match(md, /## Discussion\n\n\*\*Ravi Bhagavathula\*\* — /);
+  assert.match(md, /## Discussion\n\n\*\*Ravi Bhagavathula\*\* \(/);
   assert.match(md, /can you please test it on Salesforce QA/);
 
   // No leftover block HTML from the converted fields

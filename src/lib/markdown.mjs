@@ -28,7 +28,7 @@ export function commentsToMarkdown(comments, { turndown } = {}) {
   return comments.map((c) => {
     const body = ((turndown ? turndown(c.html || '') : (c.html || '')) || '').trim();
     const when = formatCommentDate(c.date);
-    const head = when ? `**${c.author}** — ${when}` : `**${c.author}**`;
+    const head = when ? `**${c.author}** (${when})` : `**${c.author}**`;
     return `${head}\n\n${body}`;
   }).join('\n\n---\n\n');
 }

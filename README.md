@@ -17,7 +17,7 @@ Then each section you selected (User Story or Problem Statement, Description, Ac
 
 - Rich-text (HTML) fields are converted to GitHub-flavored Markdown.
 - Fields that Azure DevOps already stores as Markdown are passed through unchanged (no double-conversion).
-- The parent id is read from the work item's own data (`System.Parent`) — the cross-origin "Parent Details" iframe is never accessed.
+- The parent id is read from the work item's own data (`System.Parent`); the cross-origin "Parent Details" iframe is never accessed.
 - Comments are fetched through your existing signed-in session (no Personal Access Token needed).
 
 ## Behavior notes

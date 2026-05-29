@@ -1,6 +1,6 @@
 // Build a configured HTML->Markdown converter. The TurndownService constructor and
 // (optional) GFM plugin are injected so the popup uses the vendored UMD globals while
-// the conversion test uses the npm builds — identical config either way.
+// the conversion test uses the npm builds. Identical config either way.
 //
 // Returns: (htmlString) => markdownString
 

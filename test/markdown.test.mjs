@@ -54,7 +54,7 @@ test('parent renders id-only as a link; discussion lists author/date/body', () =
   const { model, sectionList } = buildModel();
   const md = assembleMarkdown(model, sectionList, allOn(sectionList), { turndown: fakeTurndown });
   assert.match(md, /## Parent\n\n\[451728\]\(https:\/\/dartcontainer.*451728\)/);
-  assert.match(md, /## Discussion\n\n\*\*Ravi Bhagavathula\*\* — /);
+  assert.match(md, /## Discussion\n\n\*\*Ravi Bhagavathula\*\* \(/);
   assert.match(md, /CONV:.*can you please test it on Salesforce QA/);
 });
 

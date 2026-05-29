@@ -14,7 +14,7 @@ try {
   ready = false;
 }
 
-const skip = ready ? false : 'devDeps (turndown/turndown-plugin-gfm) not installed — run npm install';
+const skip = ready ? false : 'devDeps (turndown/turndown-plugin-gfm) not installed; run npm install';
 
 test('converts the real Acceptance Criteria HTML to an ordered list, no raw tags', { skip }, () => {
   const turndown = createTurndown(TurndownService, gfm);
