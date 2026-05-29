@@ -7,20 +7,30 @@
 //     ["work-item-type-data"].data.form             (form layout; string OR object)
 
 export const WI_PROVIDER = 'ms.vss-work-web.work-item-data-provider';
+const PFD_KEY = 'ms.vss-work-web.work-item-project-field-data';
+const TD_KEY = 'ms.vss-work-web.work-item-type-data';
 
 const REF = { TITLE: 'System.Title', PARENT: 'System.Parent' };
 const HIERARCHY_REVERSE = 'System.LinkTypes.Hierarchy-Reverse'; // parent
 const LINKTYPE_PARENT = -2; // embedded numeric code for Hierarchy-Reverse
 
-/** root (parsed #dataProviders) -> grouped provider sub-objects, or null. */
+/**
+ * root (parsed #dataProviders) -> grouped provider sub-objects, or null.
+ * Field definitions and the form layout can appear either nested under the
+ * work-item-data-provider or as sibling top-level providers; check both.
+ */
 export function getProviders(root) {
-  const dp = root && root.data && root.data[WI_PROVIDER];
+  const data = root && root.data;
+  if (!data) return null;
+  const dp = data[WI_PROVIDER];
   if (!dp) return null;
+  const pfdHost = dp['work-item-project-field-data'] || data[PFD_KEY];
+  const tdHost = dp['work-item-type-data'] || data[TD_KEY];
   return {
     workItemId: dp['work-item-id'] ?? null,
     wiData: dp['work-item-data'] ?? null,
-    projectFields: (dp['work-item-project-field-data'] && dp['work-item-project-field-data'].data) ?? null,
-    typeData: (dp['work-item-type-data'] && dp['work-item-type-data'].data) ?? null,
+    projectFields: (pfdHost && pfdHost.data) ?? null,
+    typeData: (tdHost && tdHost.data) ?? null,
   };
 }
 

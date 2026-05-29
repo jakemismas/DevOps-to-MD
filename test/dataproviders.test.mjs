@@ -93,3 +93,15 @@ test('isEmptyValue treats whitespace-only markup as empty', () => {
   assert.equal(isEmptyValue(''), true);
   assert.equal(isEmptyValue(null), true);
 });
+
+test('getProviders reads field defs / form from sibling top-level providers', () => {
+  const root = { data: {
+    'ms.vss-work-web.work-item-data-provider': { 'work-item-id': 5, 'work-item-data': { fields: { '1': 'T' } } },
+    'ms.vss-work-web.work-item-project-field-data': { data: { fields: [{ id: 1, name: 'Title', referenceName: 'System.Title', type: 1 }] } },
+    'ms.vss-work-web.work-item-type-data': { data: { form: { pages: [] } } },
+  } };
+  const p = getProviders(root);
+  assert.ok(p.projectFields && Array.isArray(p.projectFields.fields));
+  assert.equal(p.projectFields.fields[0].referenceName, 'System.Title');
+  assert.ok(p.typeData && p.typeData.form);
+});

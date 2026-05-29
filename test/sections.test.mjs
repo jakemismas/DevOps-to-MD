@@ -56,3 +56,19 @@ test('injects synthetic Parent and Discussion', () => {
 test('empty layout yields no sections', () => {
   assert.deepEqual(buildSectionList({ typeData: null, projectFields: { fields: [] } }, { fields: {} }), []);
 });
+
+test('falls back to field-based sections when the form layout is missing', () => {
+  const providers = {
+    typeData: null,
+    projectFields: { fields: [
+      { id: 7640679, name: 'User Story or Problem Statement', referenceName: 'Custom.UserStoryorProblemStatement', type: 7 },
+      { id: 52, name: 'Description', referenceName: 'System.Description', type: 7 }, // empty -> excluded
+      { id: 2765912, name: 'Priority', referenceName: 'Microsoft.VSTS.Common.Priority', type: 2 }, // not long-text
+    ] },
+    wiData: { fields: { '7640679': '<div>hi</div>' }, multilineFieldsFormat: { '7640679': 1 } },
+  };
+  const model = buildModelFromEmbedded(providers);
+  const list = buildSectionList(providers, model);
+  assert.deepEqual(list.map((s) => s.label), ['User Story or Problem Statement']);
+  assert.equal(list[0].present, true);
+});

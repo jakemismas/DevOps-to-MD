@@ -4,19 +4,24 @@
 // be FULLY SELF-CONTAINED (no imports, no references to module-scope variables). All
 // inputs arrive via `args`. It returns plain JSON (executeScript awaits the Promise).
 //
-// It reads the embedded #dataProviders blob (DOM) and, when asked, fetches the work
-// item's discussion comments with the user's existing session cookies (same-origin
-// fetch, credentials:'include', no PAT). The comment paging loop mirrors
-// src/lib/comments.mjs:fetchAllComments (kept in sync deliberately); it also falls back
-// across API versions if the preview version is rejected.
+// It reads the embedded #dataProviders blob (DOM). The work item's field values, field
+// definitions, and form layout may live either nested under the work-item-data-provider
+// or as sibling top-level providers, so we look in both places. When asked, it fetches
+// the discussion comments with the user's existing session cookies (same-origin fetch,
+// credentials:'include', no PAT). The comment paging loop mirrors
+// src/lib/comments.mjs:fetchAllComments and falls back across API versions.
 
 export async function harvest(args) {
   const opts = args || {};
   const WI_PROVIDER = 'ms.vss-work-web.work-item-data-provider';
+  const PFD_KEY = 'ms.vss-work-web.work-item-project-field-data';
+  const TD_KEY = 'ms.vss-work-web.work-item-type-data';
   const result = {
     ok: true,
-    embedded: null,
     embeddedWorkItemId: null,
+    workItemData: null,       // { fields, multilineFieldsFormat, relations }
+    projectFieldData: null,   // { status, data: { fields: [...] } }
+    typeData: null,           // { status, data: { form, ... } }
     comments: [],
     commentsTruncated: false,
     commentsAttempted: false,
@@ -35,10 +40,13 @@ export async function harvest(args) {
     if (el && el.textContent) {
       try {
         const root = JSON.parse(el.textContent);
-        const dp = root && root.data && root.data[WI_PROVIDER];
+        const data = (root && root.data) || {};
+        const dp = data[WI_PROVIDER];
         if (dp) {
-          result.embedded = dp;
           result.embeddedWorkItemId = dp['work-item-id'] != null ? dp['work-item-id'] : null;
+          result.workItemData = dp['work-item-data'] || null;
+          result.projectFieldData = dp['work-item-project-field-data'] || data[PFD_KEY] || null;
+          result.typeData = dp['work-item-type-data'] || data[TD_KEY] || null;
         } else {
           result.errors.push('missing:work-item-data-provider');
         }
@@ -57,7 +65,6 @@ export async function harvest(args) {
         candidates.push(opts.commentsUrl.replace('7.1-preview.4', '7.0-preview.3'));
       }
 
-      // Establish a working base URL using the first page.
       let base = null;
       let token = null;
       for (const cand of candidates) {
@@ -77,7 +84,6 @@ export async function harvest(args) {
         }
       }
 
-      // Page the rest.
       let pages = 1;
       while (base && token) {
         if (pages >= max) { result.commentsTruncated = true; break; }

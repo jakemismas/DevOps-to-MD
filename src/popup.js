@@ -90,7 +90,7 @@ async function runHarvest(needComments) {
 
 // Returns { providers, model } on success, or null after surfacing a problem.
 async function applyHarvest(payload, { initial }) {
-  if (!payload.embedded) {
+  if (!payload.workItemData) {
     els.generate.disabled = true;
     setStatus('No work item data found on this page. Reload it and try again.', 'warn');
     return null;
@@ -101,7 +101,13 @@ async function applyHarvest(payload, { initial }) {
     return null;
   }
 
-  const providers = getProviders({ data: { [WI_PROVIDER]: payload.embedded } });
+  const root = { data: { [WI_PROVIDER]: {
+    'work-item-id': payload.embeddedWorkItemId,
+    'work-item-data': payload.workItemData,
+    'work-item-project-field-data': payload.projectFieldData,
+    'work-item-type-data': payload.typeData,
+  } } };
+  const providers = getProviders(root);
   const model = buildModelFromEmbedded(providers);
   model.url = buildWorkItemUrl(state.info);
   if (model.parentId != null) model.parentUrl = buildParentUrl(state.info, model.parentId);
@@ -174,12 +180,6 @@ function renderSections() {
     const text = document.createElement('span');
     text.textContent = s.label;
     row.append(cb, text);
-    if (state.newSlugs.has(s.slug)) {
-      const badge = document.createElement('span');
-      badge.className = 'badge';
-      badge.textContent = 'new';
-      row.append(badge);
-    }
     els.sectionList.append(row);
   }
 }
