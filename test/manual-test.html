@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Manual test: vendored Turndown</title>
+  <style>
+    body { font-family: -apple-system, "Segoe UI", sans-serif; max-width: 900px; margin: 24px auto; padding: 0 16px; }
+    textarea { width: 100%; height: 220px; font-family: ui-monospace, Consolas, monospace; font-size: 12px; }
+    button { padding: 8px 16px; margin: 8px 0; cursor: pointer; }
+    h2 { font-size: 14px; margin: 16px 0 4px; }
+  </style>
+</head>
+<body>
+  <h1>Vendored Turndown — manual check</h1>
+  <p>Verifies the exact <code>vendor/*.umd.js</code> build the extension ships, in a real browser.
+     Paste Azure DevOps field HTML below and click Convert.</p>
+  <h2>HTML in</h2>
+  <textarea id="in">&lt;div&gt;&lt;ol&gt;&lt;li&gt;&lt;strong&gt;One&lt;/strong&gt; item&lt;/li&gt;&lt;li&gt;Two&lt;/li&gt;&lt;/ol&gt;&lt;/div&gt;</textarea>
+  <button id="go">Convert →</button>
+  <h2>Markdown out</h2>
+  <textarea id="out" readonly></textarea>
+
+  <script src="../vendor/turndown.umd.js"></script>
+  <script src="../vendor/turndown-plugin-gfm.umd.js"></script>
+  <script type="module">
+    import { createTurndown } from '../src/lib/turndown-factory.mjs';
+    const turndown = createTurndown(window.TurndownService, window.turndownPluginGfm);
+    const $ = (id) => document.getElementById(id);
+    function run() { $('out').value = turndown($('in').value); }
+    $('go').addEventListener('click', run);
+    run();
+  </script>
+</body>
+</html>

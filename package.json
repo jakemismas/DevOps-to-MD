@@ -1,0 +1,16 @@
+{
+  "name": "devops-to-md",
+  "version": "0.1.0",
+  "description": "Chrome extension that converts an Azure DevOps work item into clean Markdown for the clipboard.",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test \"test/*.test.mjs\"",
+    "test:unit": "node --test test/fixture-provenance.test.mjs test/url.test.mjs test/dataproviders.test.mjs test/sections.test.mjs test/comments.test.mjs test/markdown.test.mjs test/prefs.test.mjs",
+    "test:conversion": "node --test test/markdown-turndown.test.mjs"
+  },
+  "devDependencies": {
+    "turndown": "^7.2.0",
+    "turndown-plugin-gfm": "^1.0.2"
+  }
+}

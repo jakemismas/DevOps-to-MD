@@ -1,0 +1,107 @@
+<!doctype html>
+<!--
+  Focused real-data fixture derived from Azure DevOps work item 470134
+  (dartcontainer / PPM1510 - Pricing Excellence). The #dataProviders blob below
+  mirrors the real nested shape used by Azure DevOps:
+    data["ms.vss-work-web.work-item-data-provider"]
+      ["work-item-id"]                                       -> number
+      ["work-item-data"]["fields"|"multilineFieldsFormat"|"relations"]
+      ["work-item-project-field-data"]["data"]["fields"]     -> field defs (id/name/referenceName/type)
+      ["work-item-type-data"]["data"]["form"]                -> form layout
+  Field VALUES, format flags, parent id, field defs, and form labels/order are the
+  real values copied from the page. The form layout is stored as an OBJECT here
+  (the real page stores it as a JSON string); getFormLayout() tolerates both and a
+  dedicated test covers the string path.
+-->
+<html lang="en">
+<head><meta charset="utf-8"><title>Fixture 470134</title></head>
+<body>
+<script id="dataProviders" type="application/json">
+{
+  "data": {
+    "ms.vss-work-web.work-item-data-provider": {
+      "work-item-id": 470134,
+      "work-item-data": {
+        "revision": 21,
+        "fields": {
+          "-3": 470134,
+          "-35": 451728,
+          "1": "Navigate to PriceFx within Salesforce App",
+          "2": "Test",
+          "25": "Product Backlog Item",
+          "80": "Canidium Team; Kelsey & Sales; Phase 2",
+          "7640679": "<div><div style=\"box-sizing:border-box;font-family:&quot;Segoe UI&quot;;\"><strong style=\"box-sizing:border-box;\">As a Sales Team Member,</strong><br style=\"box-sizing:border-box;\"> </div><div style=\"box-sizing:border-box;font-family:&quot;Segoe UI&quot;;\"><strong style=\"box-sizing:border-box;\">I want</strong><span style=\"box-sizing:border-box;\">&nbsp;</span>to launch easily to the correct agreement or create a new agreement<br style=\"box-sizing:border-box;\"><strong style=\"box-sizing:border-box;\">so that</strong><span style=\"box-sizing:border-box;\">&nbsp;</span>I can quickly view without having to navigate out of Salesforce. </div><span style=\"box-sizing:border-box;\"></span><br><br> </div>",
+          "2765953": "<div><ol><li><span>Sales Team Members can locate Pricefx as an embedded app within Salesforce (e.g., App Launcher, Utility Bar, or embedded component).</span> </li><li>When a Sales Team Member launches the Pricefx app from Salesforce, Pricefx opens embedded within Salesforce and does not require navigation to an external browser or URL. </li><li>When Pricefx is launched from Salesforce, the Pricefx Home page is displayed by default. </li><li>The embedded Pricefx experience loads successfully without redirecting the user outside of Salesforce. </li><li>The embedded Pricefx app respects existing user authentication and access controls (single sign-on where applicable). </li><li>Users without Pricefx access do not have access to the app </li><li><span>If the embedded Pricefx app fails to load, a user-friendly error message is displayed within Salesforce.</span> </li> </ol> </div>",
+          "7464447": "Setup: Assign the Pricefx User permission set to the tester. This grants the app, the tab, and the in-app access check.  \n\n1.  With Pricefx User assigned, open the App Launcher and search \"Pricefx\". The Pricefx app appears in the results.\n2.  Click the Pricefx app. The URL stays on `dart--qa01.sandbox.lightning.force.com/lightning/app/...`. No new browser tab opens, no redirect off Salesforce.\n3.  The Pricefx iframe authenticates via SAML automatically. The tester is not prompted to log in to Pricefx.\n4.  The tester sees only the Pricefx data their Pricefx role allows. A user with limited Pricefx roles does not see restricted dashboards, customers, or agreements.\n5.  Simulate an integration failure (temporarily point the `Pricefx_Embed_Base_URL` custom label at an invalid host). Load the app. After 30 seconds, an SLDS error message appears inside Salesforce: \"Pricefx failed to load. Refresh the page or contact your administrator if the problem persists.\" Revert the label after testing.\n6.  A user without the Pricefx User permission set opens the App Launcher and searches \"Pricefx\". The app does not appear.\n7.  With Pricefx User assigned and the app loaded, the Pricefx Home dashboard renders by default, not the agreements report or any record-context view.",
+          "7566956": "## Components to Deploy\n\nDeploy the following metadata from dart--pricing.sandbox to the target org. Manifest file: manifest/package-pricefx-app.xml.\n\n- AuraDefinitionBundle: pricefxHomeEmbed (force-app/main/default/aura/pricefxHomeEmbed/)\n- CustomPermission: Pricefx_Embed_Access (force-app/main/default/customPermissions/Pricefx_Embed_Access.customPermission-meta.xml)\n- FlexiPage: Pricefx_Home_AppPage (force-app/main/default/flexipages/Pricefx_Home_AppPage.flexipage-meta.xml)\n- CustomTab: Pricefx_Home (force-app/main/default/tabs/Pricefx_Home.tab-meta.xml)\n- CustomApplication: Pricefx (force-app/main/default/applications/Pricefx.app-meta.xml)\n- PermissionSet: Pricefx_User, updated (force-app/main/default/permissionsets/Pricefx_User.permissionset-meta.xml)\n\n## Dependencies (Already in Target Orgs)\n\nThese exist in dart-qa01 and production already. Confirm before deploying. Do not redeploy unless missing:\n\n- Custom Label Pricefx_Embed_Base_URL (value: https://dart-qa.pricefx.com/pricefx/dart-qa/saml/signon)\n- CSP Trusted Site Pricefx_dart_qa (whitelists https://dart-qa.pricefx.com for frame-src)\n- SAML SSO config to the Pricefx dart partition\n\n## Manual Steps Required After Deploy\n\nThese cannot be automated through metadata deploy and must be done in the target org Setup UI:\n\n1. Update the Pricefx_Embed_Base_URL custom label for production. The current value points at the dart-qa partition. Production should point at the production Pricefx partition URL. Confirm the correct production partition name with the Pricefx admin before changing.\n2. Add a CSP Trusted Site for the production Pricefx host if it differs from dart-qa.pricefx.com. Same settings as the existing Pricefx_dart_qa trusted site: frame-src and connect-src enabled, context All.\n3. Assign the Pricefx User permission set to each user who should see the app. Setup > Permission Sets > Pricefx User > Manage Assignments > Add Assignments.\n4. Verify the Pricefx Home landing. After deploy, log in as a Pricefx User and open the app. Confirm the Pricefx Home dashboard renders (not the agreements report)."
+        },
+        "multilineFieldsFormat": { "2765953": 1, "7464447": 0, "7566956": 0, "7640679": 1 },
+        "relations": [ { "ID": 451728, "LinkType": -2 } ]
+      },
+      "work-item-project-field-data": {
+        "status": 1,
+        "data": {
+          "fields": [
+            { "id": 1, "name": "Title", "referenceName": "System.Title", "type": 1 },
+            { "id": 2, "name": "State", "referenceName": "System.State", "type": 1 },
+            { "id": 25, "name": "Work Item Type", "referenceName": "System.WorkItemType", "type": 1 },
+            { "id": 52, "name": "Description", "referenceName": "System.Description", "type": 7 },
+            { "id": -35, "name": "Parent", "referenceName": "System.Parent", "type": 2 },
+            { "id": 80, "name": "Tags", "referenceName": "System.Tags", "type": 5 },
+            { "id": 2765912, "name": "Priority", "referenceName": "Microsoft.VSTS.Common.Priority", "type": 2 },
+            { "id": 2765933, "name": "Effort", "referenceName": "Microsoft.VSTS.Scheduling.Effort", "type": 10 },
+            { "id": 2765953, "name": "Acceptance Criteria", "referenceName": "Microsoft.VSTS.Common.AcceptanceCriteria", "type": 7 },
+            { "id": 7464447, "name": "Test Scenarios", "referenceName": "WebTechScrum.TestScenarios", "type": 7 },
+            { "id": 7484717, "name": "Release Notes", "referenceName": "WebDevScrum.ReleaseNotes", "type": 7 },
+            { "id": 7566956, "name": "Deployment Instructions", "referenceName": "Custom.DeploymentInstructions", "type": 7 },
+            { "id": 7588647, "name": "Security Requirements", "referenceName": "Custom.SecurityRequirements", "type": 7 },
+            { "id": 7591172, "name": "Development Instructions", "referenceName": "Custom.DevelopmentInstructions", "type": 7 },
+            { "id": 7640679, "name": "User Story or Problem Statement", "referenceName": "Custom.UserStoryorProblemStatement", "type": 7 }
+          ]
+        }
+      },
+      "work-item-type-data": {
+        "status": 1,
+        "data": {
+          "name": "Product Backlog Item",
+          "referenceName": "Microsoft.VSTS.WorkItemTypes.ProductBacklogItem",
+          "form": {
+            "pages": [
+              {
+                "label": "Details",
+                "pageType": 1,
+                "sections": [
+                  {
+                    "id": "Section1",
+                    "groups": [
+                      { "label": "Parent", "visible": true, "isContribution": true, "controls": [ { "id": "8fb62466-0f67-4db9-9b00-d7d7b8b5be0a", "isContribution": true, "visible": true } ] },
+                      { "label": "User Story or Problem Statement", "visible": true, "controls": [ { "id": "Custom.UserStoryorProblemStatement", "controlType": "HtmlFieldControl", "visible": true } ] },
+                      { "label": "Description", "visible": true, "controls": [ { "id": "System.Description", "controlType": "HtmlFieldControl", "visible": true } ] },
+                      { "label": "Acceptance Criteria", "visible": true, "controls": [ { "id": "Microsoft.VSTS.Common.AcceptanceCriteria", "controlType": "HtmlFieldControl", "visible": true } ] },
+                      { "label": "Security Requirements", "visible": true, "controls": [ { "id": "Custom.SecurityRequirements", "controlType": "HtmlFieldControl", "visible": true } ] },
+                      { "label": "Development Instructions", "visible": true, "controls": [ { "id": "Custom.DevelopmentInstructions", "controlType": "HtmlFieldControl", "visible": true } ] },
+                      { "label": "Test Scenarios", "visible": true, "controls": [ { "id": "WebTechScrum.TestScenarios", "controlType": "HtmlFieldControl", "visible": true } ] },
+                      { "label": "Deployment Instructions", "visible": true, "controls": [ { "id": "Custom.DeploymentInstructions", "controlType": "HtmlFieldControl", "visible": true } ] },
+                      { "label": "Release Notes", "visible": true, "controls": [ { "id": "WebDevScrum.ReleaseNotes", "controlType": "HtmlFieldControl", "visible": false } ] }
+                    ]
+                  },
+                  {
+                    "id": "Section2",
+                    "groups": [
+                      { "label": "Details", "visible": true, "controls": [ { "id": "Microsoft.VSTS.Common.Priority", "controlType": "FieldControl", "visible": true }, { "id": "Microsoft.VSTS.Scheduling.Effort", "controlType": "FieldControl", "visible": true } ] }
+                    ]
+                  }
+                ]
+              },
+              { "label": "History", "pageType": 2, "sections": [] },
+              { "label": "Links", "pageType": 3, "sections": [] }
+            ]
+          }
+        }
+      }
+    }
+  }
+}
+</script>
+</body>
+</html>
