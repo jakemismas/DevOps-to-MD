@@ -140,3 +140,56 @@ export function buildModelFromEmbedded(providers) {
     fields: modelFields,
   };
 }
+
+/**
+ * Normalized model from the REST API (side-panel/dialog, SPA-stale, or full-page primary).
+ *   restWorkItem: GET .../wit/workitems/{id}?$expand=all -> { id, fields:{refName:value}, relations:[{rel,url}] }
+ *   fieldDefs:    [{ referenceName, name, type }]  (trimmed wit/fields list)
+ * model.fields is keyed by referenceName; `type` is the REST string ("html" for rich text).
+ * `format` is null so markdown.mjs content-sniffs (REST exposes no HTML/Markdown flag).
+ */
+export function buildModelFromRest(restWorkItem, fieldDefs) {
+  const wi = restWorkItem || {};
+  const fields = wi.fields || {};
+  const relations = wi.relations || [];
+
+  const defByRef = {};
+  for (const d of fieldDefs || []) {
+    if (d && d.referenceName) defByRef[d.referenceName] = d;
+  }
+
+  const modelFields = {};
+  for (const ref of Object.keys(fields)) {
+    const def = defByRef[ref];
+    const value = fields[ref];
+    modelFields[ref] = {
+      referenceName: ref,
+      fieldId: def ? def.id : undefined,
+      label: (def && def.name) || ref,
+      type: def ? def.type : undefined,
+      format: null, // content-sniff at render time
+      value: value ?? null,
+      present: !isEmptyValue(value),
+    };
+  }
+
+  let parentId = null;
+  const pf = fields[REF.PARENT];
+  if (pf != null && pf !== '') {
+    parentId = Number(pf);
+  } else {
+    for (const rel of relations) {
+      if (rel && rel.rel === HIERARCHY_REVERSE && typeof rel.url === 'string') {
+        const m = rel.url.match(/\/(\d+)\s*$/);
+        if (m) { parentId = Number(m[1]); break; }
+      }
+    }
+  }
+
+  return {
+    workItemId: wi.id ?? null,
+    title: String(fields[REF.TITLE] ?? ''),
+    parentId,
+    fields: modelFields,
+  };
+}

@@ -2,7 +2,9 @@
 
 A Chrome (Manifest V3) extension that converts an **Azure DevOps work item** into clean, formatted **Markdown** you can copy to your clipboard and paste anywhere.
 
-Click the toolbar icon on a work item page, pick which sections to include (gear icon), press **Generate**, and copy the result. Your section choices are remembered per Azure DevOps organization.
+Click the toolbar icon on a work item, pick which sections to include (gear icon), press **Generate**, and copy the result. Your section choices are remembered per Azure DevOps organization.
+
+It works whether the work item is opened **full-page** (`/_workitems/edit/{id}`) or as a **dialog / side panel** from a Boards card, Sprints taskboard, Backlog, or Query (the tab URL stays on the hub with `?workitem={id}`).
 
 ## What it copies
 
@@ -24,8 +26,8 @@ Then each section you selected (User Story or Problem Statement, Description, Ac
 
 - **First run on a new org:** nothing is pre-selected. Open the gear, tick the sections you want, press Generate. Choices persist per org.
 - **Return visits:** your saved choices are restored. Sections that newly appear on a ticket show up unchecked with a `(new)` badge so the output never changes silently.
-- **Empty selected sections** render a `_(empty)_` placeholder so your scaffold is always present.
-- **After in-page (SPA) navigation** between work items, reload the page before generating (the extension will tell you if the page data is stale).
+- **Empty selected sections** render a `_(empty)_` placeholder so your scaffold is always present (full-page view). In the dialog/side-panel view the gear lists only the content sections that actually have text, since the page does not expose the empty ones.
+- **Section data is always read live** from Azure DevOps when you open the popup, so navigating between work items in-page (SPA) never needs a page reload.
 
 ## Install (load unpacked)
 

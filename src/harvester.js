@@ -4,12 +4,15 @@
 // be FULLY SELF-CONTAINED (no imports, no references to module-scope variables). All
 // inputs arrive via `args`. It returns plain JSON (executeScript awaits the Promise).
 //
-// It reads the embedded #dataProviders blob (DOM). The work item's field values, field
-// definitions, and form layout may live either nested under the work-item-data-provider
-// or as sibling top-level providers, so we look in both places. When asked, it fetches
-// the discussion comments with the user's existing session cookies (same-origin fetch,
-// credentials:'include', no PAT). The comment paging loop mirrors
-// src/lib/comments.mjs:fetchAllComments and falls back across API versions.
+// Data sources, in order of preference (the popup picks which to use):
+//   - REST work item ($expand=all) by id + a trimmed wit/fields list, fetched with the
+//     user's existing session cookies (same-origin, credentials:'include', no PAT). This
+//     is the primary path and works for full page AND dialog/side-panel.
+//   - The embedded #dataProviders blob (read from the DOM) supplies the form layout for
+//     nice section ordering + empty sections on full pages, and is a values fallback if
+//     REST fails. On hub pages (taskboard/boards) it does not contain the opened item.
+//   - Comments come from the REST comments endpoint (paged, with an api-version fallback).
+// The comment paging loop mirrors src/lib/comments.mjs:fetchAllComments.
 
 export async function harvest(args) {
   const opts = args || {};
@@ -19,9 +22,8 @@ export async function harvest(args) {
   const result = {
     ok: true,
     embeddedWorkItemId: null,
-    workItemData: null,       // { fields, multilineFieldsFormat, relations }
-    projectFieldData: null,   // { status, data: { fields: [...] } }
-    typeData: null,           // { status, data: { form, ... } }
+    embedded: null,            // { workItemData, projectFieldData, typeData } | null
+    rest: null,                // { workItem: { id, fields, relations }, fieldDefs: [...] } | null
     comments: [],
     commentsTruncated: false,
     commentsAttempted: false,
@@ -36,27 +38,62 @@ export async function harvest(args) {
     base + (base.indexOf('?') >= 0 ? '&' : '?') + 'continuationToken=' + encodeURIComponent(token);
 
   try {
-    const el = document.getElementById('dataProviders');
-    if (el && el.textContent) {
-      try {
+    // 1) Embedded blob (form layout + values fallback). Present on full-page loads only.
+    try {
+      const el = document.getElementById('dataProviders');
+      if (el && el.textContent) {
         const root = JSON.parse(el.textContent);
         const data = (root && root.data) || {};
         const dp = data[WI_PROVIDER];
         if (dp) {
           result.embeddedWorkItemId = dp['work-item-id'] != null ? dp['work-item-id'] : null;
-          result.workItemData = dp['work-item-data'] || null;
-          result.projectFieldData = dp['work-item-project-field-data'] || data[PFD_KEY] || null;
-          result.typeData = dp['work-item-type-data'] || data[TD_KEY] || null;
-        } else {
-          result.errors.push('missing:work-item-data-provider');
+          result.embedded = {
+            workItemData: dp['work-item-data'] || null,
+            projectFieldData: dp['work-item-project-field-data'] || data[PFD_KEY] || null,
+            typeData: dp['work-item-type-data'] || data[TD_KEY] || null,
+          };
         }
-      } catch (e) {
-        result.errors.push('parse:dataProviders:' + (e && e.message));
       }
-    } else {
-      result.errors.push('missing:dataProviders');
+    } catch (e) {
+      result.errors.push('embedded:' + (e && e.message));
     }
 
+    // 2) REST work item ($expand=all) + trimmed field definitions (primary).
+    if (opts.restWorkItemUrl) {
+      try {
+        const r = await getJson(opts.restWorkItemUrl);
+        if (r.ok && r.body) {
+          const workItem = {
+            id: r.body.id,
+            fields: r.body.fields || {},
+            relations: Array.isArray(r.body.relations) ? r.body.relations : [],
+          };
+          let fieldDefs = [];
+          if (opts.fieldsUrl) {
+            try {
+              const fr = await getJson(opts.fieldsUrl);
+              if (fr.ok && fr.body && Array.isArray(fr.body.value)) {
+                fieldDefs = fr.body.value
+                  .filter((f) => f && f.referenceName &&
+                    Object.prototype.hasOwnProperty.call(workItem.fields, f.referenceName))
+                  .map((f) => ({ referenceName: f.referenceName, name: f.name, type: f.type }));
+              } else {
+                result.errors.push('fields:http:' + fr.status);
+              }
+            } catch (e) {
+              result.errors.push('fields:fetch:' + (e && e.message));
+            }
+          }
+          result.rest = { workItem, fieldDefs };
+        } else {
+          result.errors.push('workitem:http:' + r.status);
+        }
+      } catch (e) {
+        result.errors.push('workitem:fetch:' + (e && e.message));
+      }
+    }
+
+    // 3) Comments (paged), only when requested.
     if (opts.needComments && opts.commentsUrl) {
       result.commentsAttempted = true;
       const max = opts.maxPages || 10;

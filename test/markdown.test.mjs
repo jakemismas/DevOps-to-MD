@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { loadDataProviders } from './helpers/load-fixture.mjs';
 import { getProviders, buildModelFromEmbedded } from '../src/lib/dataproviders.mjs';
-import { buildSectionList, injectSyntheticSections } from '../src/lib/sections.mjs';
+import { buildSectionsFromLayout, injectSyntheticSections } from '../src/lib/sections.mjs';
 import { assembleMarkdown, fieldToMarkdown, commentsToMarkdown, parentToMarkdown } from '../src/lib/markdown.mjs';
 
 // Deterministic fake converter: marks converted HTML so we can tell convert vs verbatim.
@@ -16,7 +16,7 @@ function buildModel() {
   model.comments = [
     { author: 'Ravi Bhagavathula', date: '2026-05-19T12:00:00Z', html: '<p>@Lily Doniger, can you please test it on Salesforce QA?</p>', text: '' },
   ];
-  const sectionList = injectSyntheticSections(buildSectionList(providers, model), model);
+  const sectionList = injectSyntheticSections(buildSectionsFromLayout(providers, model), model);
   return { model, sectionList };
 }
 

@@ -1,0 +1,32 @@
+{
+  "_provenance": "Synthetic but shape-accurate sample of GET /_apis/wit/workitems/476404?$expand=all plus a trimmed /_apis/wit/fields list. Mirrors the dialog/side-panel REST path (fields keyed by referenceName, parent via Hierarchy-Reverse relation, System.History present to prove it is excluded from sections).",
+  "workItem": {
+    "id": 476404,
+    "fields": {
+      "System.Id": 476404,
+      "System.WorkItemType": "Product Backlog Item",
+      "System.Title": "Add Pricefx quick-launch tile to the Salesforce home page",
+      "System.State": "Committed",
+      "System.Parent": 451728,
+      "Custom.UserStoryorProblemStatement": "<div><b>As a</b> Sales Team Member,<br>I want a quick-launch tile<br><b>so that</b> I can open Pricefx without searching.</div>",
+      "Microsoft.VSTS.Common.AcceptanceCriteria": "<div><ol><li>Tile appears on the Salesforce home page.</li><li>Clicking it opens Pricefx in a new tab.</li></ol></div>",
+      "WebTechScrum.TestScenarios": "Setup: Assign the Pricefx User permission set.\n\n1. Open the Salesforce home page.\n2. Confirm the Pricefx tile is visible.",
+      "Custom.SecurityRequirements": "   ",
+      "System.History": "<div>Latest discussion revision text that must never become a section.</div>"
+    },
+    "relations": [
+      { "rel": "System.LinkTypes.Hierarchy-Reverse", "url": "https://dartcontainer.visualstudio.com/_apis/wit/workItems/451728" }
+    ]
+  },
+  "fieldDefs": [
+    { "referenceName": "System.WorkItemType", "name": "Work Item Type", "type": "string" },
+    { "referenceName": "System.Title", "name": "Title", "type": "string" },
+    { "referenceName": "System.State", "name": "State", "type": "string" },
+    { "referenceName": "System.Parent", "name": "Parent", "type": "integer" },
+    { "referenceName": "Custom.UserStoryorProblemStatement", "name": "User Story or Problem Statement", "type": "html" },
+    { "referenceName": "Microsoft.VSTS.Common.AcceptanceCriteria", "name": "Acceptance Criteria", "type": "html" },
+    { "referenceName": "WebTechScrum.TestScenarios", "name": "Test Scenarios", "type": "html" },
+    { "referenceName": "Custom.SecurityRequirements", "name": "Security Requirements", "type": "html" },
+    { "referenceName": "System.History", "name": "History", "type": "html" }
+  ]
+}

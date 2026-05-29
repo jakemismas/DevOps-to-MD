@@ -1,12 +1,15 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { loadDataProviders } from './helpers/load-fixture.mjs';
-import { getProviders, buildModelFromEmbedded } from '../src/lib/dataproviders.mjs';
-import { buildSectionList, injectSyntheticSections, slugifyLabel, PARENT_SLUG, DISCUSSION_SLUG } from '../src/lib/sections.mjs';
+import { getProviders, buildModelFromEmbedded, buildModelFromRest } from '../src/lib/dataproviders.mjs';
+import {
+  buildSectionsFromLayout, buildSectionsFromFields, mergeSections,
+  injectSyntheticSections, slugifyLabel, PARENT_SLUG, DISCUSSION_SLUG,
+} from '../src/lib/sections.mjs';
 
 const providers = getProviders(loadDataProviders());
 const model = buildModelFromEmbedded(providers);
-const list = buildSectionList(providers, model);
+const list = buildSectionsFromLayout(providers, model);
 
 test('detects content sections in form-layout order', () => {
   assert.deepEqual(list.map(s => s.label), [
@@ -54,21 +57,75 @@ test('injects synthetic Parent and Discussion', () => {
 });
 
 test('empty layout yields no sections', () => {
-  assert.deepEqual(buildSectionList({ typeData: null, projectFields: { fields: [] } }, { fields: {} }), []);
+  assert.deepEqual(buildSectionsFromLayout({ typeData: null, projectFields: { fields: [] } }, { fields: {} }), []);
 });
 
-test('falls back to field-based sections when the form layout is missing', () => {
-  const providers = {
-    typeData: null,
-    projectFields: { fields: [
-      { id: 7640679, name: 'User Story or Problem Statement', referenceName: 'Custom.UserStoryorProblemStatement', type: 7 },
-      { id: 52, name: 'Description', referenceName: 'System.Description', type: 7 }, // empty -> excluded
-      { id: 2765912, name: 'Priority', referenceName: 'Microsoft.VSTS.Common.Priority', type: 2 }, // not long-text
-    ] },
-    wiData: { fields: { '7640679': '<div>hi</div>' }, multilineFieldsFormat: { '7640679': 1 } },
-  };
-  const model = buildModelFromEmbedded(providers);
-  const list = buildSectionList(providers, model);
-  assert.deepEqual(list.map((s) => s.label), ['User Story or Problem Statement']);
-  assert.equal(list[0].present, true);
+// ---- REST/dialog path: buildSectionsFromFields ----
+
+function restModel(fields, defs) {
+  return buildModelFromRest({ id: 1, fields, relations: [] }, defs);
+}
+
+test('buildSectionsFromFields: html fields only, in known content order, History excluded', () => {
+  const model = restModel(
+    {
+      'System.Title': 'T',                                         // not html -> excluded
+      'Microsoft.VSTS.Common.AcceptanceCriteria': '<ul><li>a</li></ul>',
+      'Custom.UserStoryorProblemStatement': '<p>story</p>',
+      'System.Description': '<p>desc</p>',
+      'System.History': '<p>a comment</p>',                        // html but excluded
+      'Microsoft.VSTS.Priority': '2',                              // not html -> excluded
+    },
+    [
+      { referenceName: 'System.Title', name: 'Title', type: 'string' },
+      { referenceName: 'Microsoft.VSTS.Common.AcceptanceCriteria', name: 'Acceptance Criteria', type: 'html' },
+      { referenceName: 'Custom.UserStoryorProblemStatement', name: 'User Story or Problem Statement', type: 'html' },
+      { referenceName: 'System.Description', name: 'Description', type: 'html' },
+      { referenceName: 'System.History', name: 'History', type: 'html' },
+      { referenceName: 'Microsoft.VSTS.Priority', name: 'Priority', type: 'integer' },
+    ]
+  );
+  const sections = buildSectionsFromFields(model);
+  assert.deepEqual(sections.map(s => s.label), [
+    'User Story or Problem Statement',
+    'Description',
+    'Acceptance Criteria',
+  ]);
+  assert.ok(sections.every(s => s.present === true));
+  assert.equal(sections[0].fieldRefs[0], 'Custom.UserStoryorProblemStatement');
+});
+
+test('buildSectionsFromFields: unknown html fields sort alphabetically after known ones', () => {
+  const model = restModel(
+    {
+      'System.Description': '<p>d</p>',
+      'Custom.Zeta': '<p>z</p>',
+      'Custom.Alpha': '<p>a</p>',
+    },
+    [
+      { referenceName: 'System.Description', name: 'Description', type: 'html' },
+      { referenceName: 'Custom.Zeta', name: 'Zeta Notes', type: 'html' },
+      { referenceName: 'Custom.Alpha', name: 'Alpha Notes', type: 'html' },
+    ]
+  );
+  assert.deepEqual(buildSectionsFromFields(model).map(s => s.label), ['Description', 'Alpha Notes', 'Zeta Notes']);
+});
+
+// ---- mergeSections ----
+
+test('mergeSections: keeps layout order, appends only refs not already covered', () => {
+  const primary = [
+    { slug: 'desc', label: 'Description', fieldRefs: ['System.Description'], present: false, synthetic: null },
+  ];
+  const extra = [
+    { slug: 'desc2', label: 'Description (dup)', fieldRefs: ['System.Description'], present: true, synthetic: null },
+    { slug: 'sec', label: 'Security Requirements', fieldRefs: ['Custom.SecurityRequirements'], present: true, synthetic: null },
+  ];
+  const merged = mergeSections(primary, extra);
+  assert.deepEqual(merged.map(s => s.label), ['Description', 'Security Requirements']);
+});
+
+test('mergeSections with empty primary returns extra unchanged', () => {
+  const extra = [{ slug: 'a', label: 'A', fieldRefs: ['X'], present: true, synthetic: null }];
+  assert.deepEqual(mergeSections([], extra), extra);
 });

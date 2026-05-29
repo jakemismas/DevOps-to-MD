@@ -3,7 +3,8 @@ import assert from 'node:assert/strict';
 import { loadDataProviders } from './helpers/load-fixture.mjs';
 import {
   getProviders, getEmbeddedWorkItemId, getFormatFlags, getFieldLabelIndex,
-  getFieldIndexByRef, getFormLayout, getParentId, buildModelFromEmbedded, isEmptyValue
+  getFieldIndexByRef, getFormLayout, getParentId, buildModelFromEmbedded, isEmptyValue,
+  buildModelFromRest
 } from '../src/lib/dataproviders.mjs';
 
 const providers = getProviders(loadDataProviders());
@@ -92,6 +93,52 @@ test('isEmptyValue treats whitespace-only markup as empty', () => {
   assert.equal(isEmptyValue('<div>hi</div>'), false);
   assert.equal(isEmptyValue(''), true);
   assert.equal(isEmptyValue(null), true);
+});
+
+test('buildModelFromRest: fields keyed by referenceName, label/type from defs, parent via System.Parent', () => {
+  const restWorkItem = {
+    id: 476404,
+    fields: {
+      'System.Title': 'Dialog item title',
+      'System.Parent': 451728,
+      'System.Description': '<div>desc</div>',
+      'Custom.SecurityRequirements': '   ', // whitespace -> not present
+    },
+    relations: [],
+  };
+  const fieldDefs = [
+    { referenceName: 'System.Title', name: 'Title', type: 'string' },
+    { referenceName: 'System.Description', name: 'Description', type: 'html' },
+    { referenceName: 'Custom.SecurityRequirements', name: 'Security Requirements', type: 'html' },
+  ];
+  const model = buildModelFromRest(restWorkItem, fieldDefs);
+  assert.equal(model.workItemId, 476404);
+  assert.equal(model.title, 'Dialog item title');
+  assert.equal(model.parentId, 451728);
+  assert.equal(model.fields['System.Description'].label, 'Description');
+  assert.equal(model.fields['System.Description'].type, 'html');
+  assert.equal(model.fields['System.Description'].present, true);
+  assert.equal(model.fields['System.Description'].format, null);
+  assert.equal(model.fields['Custom.SecurityRequirements'].present, false);
+  // a field with no matching def still appears, labeled by its reference name:
+  assert.equal(model.fields['System.Title'].label, 'Title');
+});
+
+test('buildModelFromRest: parent via Hierarchy-Reverse relation when System.Parent absent', () => {
+  const model = buildModelFromRest({
+    id: 5,
+    fields: { 'System.Title': 'T' },
+    relations: [
+      { rel: 'System.LinkTypes.Hierarchy-Forward', url: 'https://x/_apis/wit/workItems/900' },
+      { rel: 'System.LinkTypes.Hierarchy-Reverse', url: 'https://x/_apis/wit/workItems/451728' },
+    ],
+  }, []);
+  assert.equal(model.parentId, 451728);
+});
+
+test('buildModelFromRest: no parent -> null', () => {
+  const model = buildModelFromRest({ id: 5, fields: { 'System.Title': 'T' }, relations: [] }, []);
+  assert.equal(model.parentId, null);
 });
 
 test('getProviders reads field defs / form from sibling top-level providers', () => {

@@ -1,8 +1,9 @@
-// Popup controller: detects the org, injects the harvester, builds the section list,
-// manages the gear/preferences UI, assembles Markdown, and copies to the clipboard.
-import { parseAdoUrl, buildCommentsUrl, buildWorkItemUrl, buildParentUrl } from './lib/url.mjs';
-import { getProviders, buildModelFromEmbedded, WI_PROVIDER } from './lib/dataproviders.mjs';
-import { buildSectionList, injectSyntheticSections, DISCUSSION_SLUG } from './lib/sections.mjs';
+// Popup controller: detects the org + open work item, injects the harvester, builds the
+// section list (embedded layout union REST fields), manages the gear/preferences UI,
+// assembles Markdown, and copies to the clipboard.
+import { parseAdoUrl, buildCommentsUrl, buildWorkItemUrl, buildParentUrl, buildWorkItemRestUrl, buildFieldsUrl } from './lib/url.mjs';
+import { getProviders, buildModelFromEmbedded, buildModelFromRest, WI_PROVIDER } from './lib/dataproviders.mjs';
+import { buildSectionsFromLayout, buildSectionsFromFields, mergeSections, injectSyntheticSections, DISCUSSION_SLUG } from './lib/sections.mjs';
 import { normalizeComments } from './lib/comments.mjs';
 import { assembleMarkdown } from './lib/markdown.mjs';
 import { storageKeyForOrg, mergeSelections, selectionsForStorage } from './lib/prefs.mjs';
@@ -45,7 +46,7 @@ async function init() {
     els.org.textContent = 'Azure DevOps';
     els.generate.disabled = true;
     els.gear.disabled = true;
-    setStatus('Open an Azure DevOps work item (full page) to use this.', 'warn');
+    setStatus('Open an Azure DevOps work item (full page or from a board/sprint) to use this.', 'warn');
     return;
   }
 
@@ -71,8 +72,15 @@ async function getActiveTab() {
 }
 
 async function runHarvest(needComments) {
-  const args = { needComments, maxPages: 10 };
+  const args = {
+    workItemId: state.info.workItemId,
+    restWorkItemUrl: buildWorkItemRestUrl(state.info),
+    fieldsUrl: buildFieldsUrl(state.info),
+    needComments,
+    maxPages: 10,
+  };
   if (needComments) args.commentsUrl = buildCommentsUrl(state.info);
+
   let results;
   try {
     results = await chrome.scripting.executeScript({
@@ -88,33 +96,42 @@ async function runHarvest(needComments) {
   return payload;
 }
 
-// Returns { providers, model } on success, or null after surfacing a problem.
+// Returns { model } on success, or null after surfacing a problem.
 async function applyHarvest(payload, { initial }) {
-  if (!payload.workItemData) {
-    els.generate.disabled = true;
-    setStatus('No work item data found on this page. Reload it and try again.', 'warn');
-    return null;
+  const embeddedFresh = payload.embedded && payload.embeddedWorkItemId === state.info.workItemId;
+  const embeddedProviders = embeddedFresh
+    ? getProviders({ data: { [WI_PROVIDER]: {
+        'work-item-id': payload.embeddedWorkItemId,
+        'work-item-data': payload.embedded.workItemData,
+        'work-item-project-field-data': payload.embedded.projectFieldData,
+        'work-item-type-data': payload.embedded.typeData,
+      } } })
+    : null;
+
+  let model = null;
+  if (payload.rest && payload.rest.workItem) {
+    model = buildModelFromRest(payload.rest.workItem, payload.rest.fieldDefs);
+  } else if (embeddedProviders) {
+    model = buildModelFromEmbedded(embeddedProviders);
   }
-  if (payload.embeddedWorkItemId != null && payload.embeddedWorkItemId !== state.info.workItemId) {
+
+  if (!model || model.workItemId == null) {
     els.generate.disabled = true;
-    setStatus('This page navigated since it loaded. Reload the work item, then try again.', 'warn');
+    const authish = (payload.errors || []).some((e) => /workitem:http:(401|403|302)/.test(e));
+    setStatus(authish
+      ? 'Could not load this work item. Make sure you are signed in to Azure DevOps, then reload the page.'
+      : 'Could not load this work item. Reload the page and try again.', 'warn');
     return null;
   }
 
-  const root = { data: { [WI_PROVIDER]: {
-    'work-item-id': payload.embeddedWorkItemId,
-    'work-item-data': payload.workItemData,
-    'work-item-project-field-data': payload.projectFieldData,
-    'work-item-type-data': payload.typeData,
-  } } };
-  const providers = getProviders(root);
-  const model = buildModelFromEmbedded(providers);
   model.url = buildWorkItemUrl(state.info);
   if (model.parentId != null) model.parentUrl = buildParentUrl(state.info, model.parentId);
   model.comments = normalizeComments(payload.comments || []);
   model.commentsTruncated = !!payload.commentsTruncated;
 
-  state.sectionList = injectSyntheticSections(buildSectionList(providers, model), model);
+  const layoutSections = embeddedProviders ? buildSectionsFromLayout(embeddedProviders, model) : [];
+  const fieldSections = buildSectionsFromFields(model);
+  state.sectionList = injectSyntheticSections(mergeSections(layoutSections, fieldSections), model);
 
   if (initial) {
     const stored = await loadPrefs();
@@ -125,7 +142,7 @@ async function applyHarvest(payload, { initial }) {
     renderSections();
     els.generate.disabled = false;
   }
-  return { providers, model };
+  return { model };
 }
 
 async function onGenerate() {
