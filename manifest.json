@@ -1,9 +1,10 @@
 {
   "manifest_version": 3,
   "name": "DevOps to Markdown",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "Convert an Azure DevOps work item into clean Markdown for your clipboard.",
   "minimum_chrome_version": "102",
+  "homepage_url": "https://github.com/jakemismas/DevOps-to-MD",
   "action": {
     "default_popup": "src/popup.html",
     "default_title": "DevOps to Markdown",
