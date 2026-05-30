@@ -30,7 +30,13 @@ Then each section you selected (User Story or Problem Statement, Description, Ac
 - **Empty selected sections** render a `_(empty)_` placeholder so your scaffold is always present (full-page view). In the dialog/side-panel view the gear lists only the content sections that actually have text, since the page does not expose the empty ones.
 - **Section data is always read live** from Azure DevOps when you open the popup, so navigating between work items in-page (SPA) never needs a page reload.
 
-## Install (load unpacked)
+## Install
+
+### From the Chrome Web Store
+
+Published listing: _(pending review; the link will be added here once it is live)_
+
+### Load unpacked (development)
 
 1. Open `chrome://extensions`.
 2. Turn on **Developer mode** (top-right).
@@ -39,18 +45,27 @@ Then each section you selected (User Story or Problem Statement, Description, Ac
 
 To apply code changes, click the **reload** (↻) icon on the extension card in `chrome://extensions`.
 
-## Permissions
+## Privacy and permissions
 
-`activeTab`, `scripting`, `storage` only. No broad host permissions, no remote code, no telemetry. All data stays on your machine (`chrome.storage`).
+`activeTab`, `scripting`, `storage` only. No broad host permissions, no remote code, no telemetry. All processing happens on your machine; the only network requests go to your own Azure DevOps organization using your existing signed-in session (no Personal Access Token). Only your per-organization section choices are stored (`chrome.storage`); no work item content is ever stored or transmitted. Full details: [PRIVACY.md](PRIVACY.md).
 
 ## Development
 
 Pure logic (URL parsing, data extraction, section detection, Markdown assembly, preferences) lives in DOM-free ES modules under `src/lib/` so it can be unit-tested in Node with no browser.
 
 ```bash
-npm install        # dev-only: turndown (+ gfm) for the conversion test
-npm test           # run the full suite (Node's built-in test runner)
-npm run test:unit  # zero-dependency tests only (no npm install needed)
+npm install           # dev-only: turndown (+ gfm) for the conversion test
+npm test              # full suite + vendored-library integrity check
+npm run test:unit     # zero-dependency tests only (no npm install needed)
+npm run verify:vendor # confirm vendored Turndown matches its pinned SHA-256
+```
+
+To build the Chrome Web Store upload zip (runtime files only, manifest at the root) and
+the optional promo image (Windows/PowerShell):
+
+```powershell
+powershell -ExecutionPolicy Bypass -File tools/package.ps1    # -> build/devops-to-md-<version>.zip
+powershell -ExecutionPolicy Bypass -File tools/gen-promo.ps1  # -> build/promo-440x280.png
 ```
 
 Tests run against a real saved work item page (`test/fixtures/workitem-470134.html`). A provenance gate (`test/fixture-provenance.test.mjs`) fails loudly if the fixture is missing or wrong, so test expectations can never silently pass against bad data.
@@ -64,7 +79,15 @@ manifest.json            MV3 manifest
 src/popup.html|css|js     popup UI + controller
 src/harvester.js          injected page reader (DOM + authenticated comments fetch)
 src/lib/*.mjs             pure, testable logic
-vendor/                   vendored Turndown + GFM plugin
+vendor/                   vendored Turndown + GFM plugin (+ VENDOR.md provenance)
 icons/                    toolbar icons
+tools/                    icon/promo generators, packager, vendor-integrity check
 test/                     Node tests + real-page fixture
+LICENSE, PRIVACY.md       MIT license + privacy policy
+STORE_LISTING.md          paste-ready Chrome Web Store copy (maintainer)
 ```
+
+## License
+
+MIT - see [LICENSE](LICENSE). The bundled Turndown and turndown-plugin-gfm libraries are
+also MIT licensed; provenance and checksums are in [vendor/VENDOR.md](vendor/VENDOR.md).
