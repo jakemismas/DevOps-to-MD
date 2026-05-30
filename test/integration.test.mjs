@@ -20,6 +20,12 @@ try {
 } catch { ready = false; }
 const skip = ready ? false : 'devDeps not installed';
 
+// Fail loudly (not skip) so `npm test` can't pass with the end-to-end suite silently
+// absent. `npm run test:unit` (zero-dependency) does not include this file.
+test('integration devDeps are installed (run npm install)', () => {
+  assert.ok(ready, 'turndown + turndown-plugin-gfm must be installed for the integration suite; run `npm install`');
+});
+
 function buildAll() {
   const root = extractDataProviders(loadFixtureHtml());
   const providers = getProviders(root);

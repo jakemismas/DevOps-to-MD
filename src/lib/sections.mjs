@@ -8,7 +8,15 @@ const HTML_CONTROL = 'HtmlFieldControl';
 export const PARENT_SLUG = '__parent__';
 export const DISCUSSION_SLUG = '__discussion__';
 
-// Best-effort ordering for the REST/dialog path (no form layout available there).
+// Best-effort ordering for the REST/dialog path (no form layout is available there, so
+// we cannot read the org's real field order). Fields NOT in this list are never dropped;
+// they sort alphabetically after the listed ones.
+//
+// Cross-org note: the System.* and Microsoft.VSTS.* refs are generic and order correctly
+// on ANY Azure DevOps org. The Custom.* / WebTechScrum.* / WebDevScrum.* refs are
+// process-specific (the DART org); on other orgs they simply never match, which only
+// affects ordering, not which sections appear. On full-page views the embedded form
+// layout supplies the exact order and this list is not consulted.
 const KNOWN_CONTENT_ORDER = [
   'Custom.UserStoryorProblemStatement',
   'System.Description',

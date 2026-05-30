@@ -5,9 +5,10 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "node --test \"test/*.test.mjs\"",
+    "test": "node tools/verify-vendor.mjs && node --test \"test/*.test.mjs\"",
     "test:unit": "node --test test/fixture-provenance.test.mjs test/url.test.mjs test/dataproviders.test.mjs test/sections.test.mjs test/comments.test.mjs test/markdown.test.mjs test/prefs.test.mjs",
-    "test:conversion": "node --test test/markdown-turndown.test.mjs"
+    "test:conversion": "node --test test/markdown-turndown.test.mjs",
+    "verify:vendor": "node tools/verify-vendor.mjs"
   },
   "devDependencies": {
     "turndown": "^7.2.0",

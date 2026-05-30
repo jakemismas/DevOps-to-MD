@@ -45,6 +45,17 @@ test('parses a dev.azure.com boards dialog URL', () => {
   assert.equal(info.view, 'dialog');
 });
 
+test('org-level board/sprint hub is not mistaken for a project (web links stay valid)', () => {
+  const vs = parseAdoUrl('https://dartcontainer.visualstudio.com/_boards/board/t/Team?workitem=5');
+  assert.equal(vs.project, null);
+  assert.equal(vs.workItemId, 5);
+  assert.equal(buildWorkItemUrl(vs), 'https://dartcontainer.visualstudio.com/_workitems/edit/5');
+
+  const da = parseAdoUrl('https://dev.azure.com/dartcontainer/_sprints/taskboard/Team?workitem=9');
+  assert.equal(da.project, null);
+  assert.equal(buildWorkItemUrl(da), 'https://dev.azure.com/dartcontainer/_workitems/edit/9');
+});
+
 test('ignores query string / trailing path after the id', () => {
   const info = parseAdoUrl('https://dev.azure.com/org/Proj/_workitems/edit/9/?foo=bar#x');
   assert.equal(info.workItemId, 9);
@@ -64,6 +75,15 @@ test('ignores a non-numeric workitem param', () => {
 test('returns null for non-ADO hosts and junk', () => {
   assert.equal(parseAdoUrl('https://example.com/_workitems/edit/1'), null);
   assert.equal(parseAdoUrl('not a url'), null);
+});
+
+test('rejects dev.azure.com subdomains and look-alike hosts (credentialed-fetch hardening)', () => {
+  assert.equal(parseAdoUrl('https://foo.dev.azure.com/org/Proj/_workitems/edit/5'), null); // subdomain not real ADO
+  assert.equal(parseAdoUrl('https://dev.azure.com.evil.com/org/Proj/_workitems/edit/5'), null);
+  assert.equal(parseAdoUrl('https://evil-dev.azure.com/org/_workitems/edit/5'), null);
+  assert.equal(parseAdoUrl('https://notvisualstudio.com/Proj/_workitems/edit/5'), null);
+  // the legitimate bare host still works
+  assert.equal(parseAdoUrl('https://dev.azure.com/dartcontainer/Proj/_workitems/edit/5').workItemId, 5);
 });
 
 test('builds the work item REST URL (org-scoped, $expand=all)', () => {

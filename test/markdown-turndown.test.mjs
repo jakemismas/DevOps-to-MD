@@ -16,6 +16,12 @@ try {
 
 const skip = ready ? false : 'devDeps (turndown/turndown-plugin-gfm) not installed; run npm install';
 
+// Fail loudly (do NOT skip) so `npm test` can't green-wash with the real-converter suite
+// silently absent. The zero-dependency `npm run test:unit` does not include this file.
+test('conversion devDeps are installed (run npm install)', () => {
+  assert.ok(ready, 'turndown + turndown-plugin-gfm must be installed for the conversion suite; run `npm install`');
+});
+
 test('converts the real Acceptance Criteria HTML to an ordered list, no raw tags', { skip }, () => {
   const turndown = createTurndown(TurndownService, gfm);
   const model = buildModelFromEmbedded(getProviders(loadDataProviders()));
@@ -48,4 +54,29 @@ test('mention span -> plain text', { skip }, () => {
   const md = turndown('<div>hello <span class="mention">@Jake</span></div>');
   assert.match(md, /@Jake/);
   assert.ok(!/<span/i.test(md));
+});
+
+test('ADO attachment image -> visible labeled link, not a broken ![]()', { skip }, () => {
+  const turndown = createTurndown(TurndownService, gfm);
+  const html = '<div><img src="https://dartcontainer.visualstudio.com/_apis/wit/attachments/abc-123?fileName=screenshot.png" alt=""></div>';
+  const md = turndown(html);
+  assert.match(md, /\[image: screenshot\.png \(Azure DevOps attachment, requires sign-in\)\]\(https:\/\/[^)]*_apis\/wit\/attachments\/abc-123/);
+  assert.ok(!/^!\[/m.test(md), 'must not emit a bare image embed for an attachment');
+});
+
+test('non-attachment images are left as normal Markdown images', { skip }, () => {
+  const turndown = createTurndown(TurndownService, gfm);
+  const md = turndown('<img src="https://example.com/logo.png" alt="Logo">');
+  assert.match(md, /!\[Logo\]\(https:\/\/example\.com\/logo\.png\)/);
+});
+
+test('dangerous link schemes are stripped to plain text; safe links survive', { skip }, () => {
+  const turndown = createTurndown(TurndownService, gfm);
+  const evil = turndown('<a href="javascript:alert(document.cookie)">click me</a>');
+  assert.equal(evil.trim(), 'click me');
+  assert.ok(!/javascript:/i.test(evil), 'javascript: destination must not survive');
+  const vbs = turndown('<a href="vbscript:msgbox(1)">x</a>');
+  assert.ok(!/vbscript:/i.test(vbs));
+  const safe = turndown('<a href="https://example.com/page">link</a>');
+  assert.match(safe, /\[link\]\(https:\/\/example\.com\/page\)/);
 });

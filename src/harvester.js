@@ -27,11 +27,15 @@ export async function harvest(args) {
     comments: [],
     commentsTruncated: false,
     commentsAttempted: false,
+    commentsOk: false,         // true once any comments request returns 2xx (even with 0 comments)
+    auth: false,               // true if any request returned 401/403/login-redirect
     errors: [],
   };
 
+  const AUTH_STATUSES = [401, 403, 302];
   const getJson = async (url) => {
     const resp = await fetch(url, { credentials: 'include', headers: { Accept: 'application/json' } });
+    if (AUTH_STATUSES.indexOf(resp.status) >= 0) result.auth = true;
     return { ok: resp.ok, status: resp.status, body: resp.ok ? await resp.json() : null };
   };
   const withToken = (base, token) =>
@@ -108,6 +112,7 @@ export async function harvest(args) {
         try {
           const r = await getJson(cand);
           if (r.ok) {
+            result.commentsOk = true;
             base = cand;
             if (r.body && Array.isArray(r.body.comments)) {
               for (const c of r.body.comments) result.comments.push(c);

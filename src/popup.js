@@ -17,9 +17,9 @@ const state = {
   info: null,
   sectionList: [],
   selections: {},
-  newSlugs: new Set(),
   storageKey: null,
   generated: false,
+  runSeq: 0, // monotonic generate token; a stale run never overwrites a newer one
 };
 
 let _turndown = null;
@@ -34,7 +34,12 @@ async function init() {
   for (const id of ['org', 'gear', 'panel', 'sectionList', 'generate', 'regenerate', 'copy', 'status', 'output']) {
     els[id] = $(id);
   }
-  els.gear.addEventListener('click', () => { els.panel.hidden = !els.panel.hidden; });
+  els.gear.addEventListener('click', () => {
+    const opening = els.panel.hidden;
+    els.panel.hidden = !opening;
+    els.gear.setAttribute('aria-expanded', String(opening));
+    if (opening) { const first = els.panel.querySelector('input'); if (first) first.focus(); }
+  });
   els.generate.addEventListener('click', onGenerate);
   els.regenerate.addEventListener('click', onGenerate);
   els.copy.addEventListener('click', onCopy);
@@ -72,6 +77,7 @@ async function getActiveTab() {
 }
 
 async function runHarvest(needComments) {
+  if (!state.tab || state.tab.id == null) throw new Error('no active tab');
   const args = {
     workItemId: state.info.workItemId,
     restWorkItemUrl: buildWorkItemRestUrl(state.info),
@@ -117,7 +123,7 @@ async function applyHarvest(payload, { initial }) {
 
   if (!model || model.workItemId == null) {
     els.generate.disabled = true;
-    const authish = (payload.errors || []).some((e) => /workitem:http:(401|403|302)/.test(e));
+    const authish = payload.auth || (payload.errors || []).some((e) => /workitem:http:(401|403|302)/.test(e));
     setStatus(authish
       ? 'Could not load this work item. Make sure you are signed in to Azure DevOps, then reload the page.'
       : 'Could not load this work item. Reload the page and try again.', 'warn');
@@ -137,8 +143,7 @@ async function applyHarvest(payload, { initial }) {
     const stored = await loadPrefs();
     const merged = mergeSelections(stored, state.sectionList);
     state.selections = merged.selections;
-    state.newSlugs = merged.newSlugs;
-    await savePrefs(); // persist merged map so "(new)" badges clear next visit
+    await savePrefs(); // persist merged map so newly-detected sections aren't re-flagged next visit
     renderSections();
     els.generate.disabled = false;
   }
@@ -147,6 +152,7 @@ async function applyHarvest(payload, { initial }) {
 
 async function onGenerate() {
   if (!state.info) return;
+  const myRun = ++state.runSeq;
   const needComments = !!state.selections[DISCUSSION_SLUG];
   setStatus('Generating…');
 
@@ -154,20 +160,23 @@ async function onGenerate() {
   try {
     payload = await runHarvest(needComments);
   } catch (e) {
-    setStatus('Could not read the page: ' + e.message, 'error');
+    if (myRun === state.runSeq) setStatus('Could not read the page: ' + e.message, 'error');
     return;
   }
+  if (myRun !== state.runSeq) return; // a newer generate superseded this run
 
   const applied = await applyHarvest(payload, { initial: false });
-  if (!applied) return;
+  if (!applied || myRun !== state.runSeq) return;
   const { model } = applied;
 
-  const commentsFailed = needComments && payload.commentsAttempted &&
-    model.comments.length === 0 && (payload.errors || []).some((e) => e.indexOf('comments:') === 0);
+  const commentsFailed = needComments && payload.commentsAttempted && !payload.commentsOk;
   if (commentsFailed) {
     setStatus('Could not load comments. Make sure you are signed in, then reload the work item.', 'warn');
   } else if (model.commentsTruncated) {
     setStatus('Note: only the first pages of a very long discussion were included.', 'warn');
+  } else if (needComments && model.comments.length) {
+    const n = model.comments.length;
+    setStatus(`Included ${n} comment${n === 1 ? '' : 's'}.`);
   } else {
     setStatus('');
   }
@@ -232,6 +241,8 @@ function flashCopied() {
 function setStatus(msg, kind) {
   els.status.textContent = msg || '';
   els.status.className = 'status' + (kind ? ' ' + kind : '');
+  // Errors should interrupt a screen reader; routine status stays polite.
+  els.status.setAttribute('aria-live', kind === 'error' ? 'assertive' : 'polite');
 }
 
 async function loadPrefs() {

@@ -7,7 +7,7 @@ export function normalizeComments(input) {
   const raw = Array.isArray(input)
     ? input
     : (input && Array.isArray(input.comments) ? input.comments : []);
-  return raw
+  const out = raw
     .filter(c => c && c.isDeleted !== true)
     .map(c => ({
       author: (c.createdBy && c.createdBy.displayName) || 'Unknown',
@@ -15,6 +15,20 @@ export function normalizeComments(input) {
       html: c.renderedText || c.text || '',
       text: c.text || '',
     }));
+  // Emit chronologically (oldest first) for a stable, readable pasted record. ADO usually
+  // returns this order already; the sort makes it deterministic. Undated comments keep
+  // their relative position (stable sort) and sort last.
+  return out
+    .map((c, i) => [c, i])
+    .sort(([a, ia], [b, ib]) => {
+      const ta = a.date ? Date.parse(a.date) : NaN;
+      const tb = b.date ? Date.parse(b.date) : NaN;
+      if (isNaN(ta) && isNaN(tb)) return ia - ib;
+      if (isNaN(ta)) return 1;
+      if (isNaN(tb)) return -1;
+      return ta - tb || ia - ib;
+    })
+    .map(([c]) => c);
 }
 
 /**

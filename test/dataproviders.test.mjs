@@ -141,6 +141,32 @@ test('buildModelFromRest: no parent -> null', () => {
   assert.equal(model.parentId, null);
 });
 
+test('buildModelFromRest: parent relation url with trailing slash or query still resolves', () => {
+  const withSlash = buildModelFromRest({ id: 1, fields: {}, relations: [
+    { rel: 'System.LinkTypes.Hierarchy-Reverse', url: 'https://x/_apis/wit/workItems/451728/' },
+  ] }, []);
+  assert.equal(withSlash.parentId, 451728);
+  const withQuery = buildModelFromRest({ id: 1, fields: {}, relations: [
+    { rel: 'System.LinkTypes.Hierarchy-Reverse', url: 'https://x/_apis/wit/workItems/451728?api-version=7.1' },
+  ] }, []);
+  assert.equal(withQuery.parentId, 451728);
+});
+
+test('buildModelFromEmbedded skips field defs lacking a referenceName (no model.fields["undefined"])', () => {
+  const providers = {
+    workItemId: 5,
+    wiData: { fields: { '1': 'Title', '99': '<div>orphan</div>' }, multilineFieldsFormat: {} },
+    projectFields: { fields: [
+      { id: 1, name: 'Title', referenceName: 'System.Title', type: 1 },
+      { id: 99, name: 'Orphan', type: 7 }, // no referenceName
+    ] },
+    typeData: null,
+  };
+  const model = buildModelFromEmbedded(providers);
+  assert.ok(!Object.prototype.hasOwnProperty.call(model.fields, 'undefined'));
+  assert.ok(model.fields['System.Title']);
+});
+
 test('getProviders reads field defs / form from sibling top-level providers', () => {
   const root = { data: {
     'ms.vss-work-web.work-item-data-provider': { 'work-item-id': 5, 'work-item-data': { fields: { '1': 'T' } } },

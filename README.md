@@ -21,11 +21,12 @@ Then each section you selected (User Story or Problem Statement, Description, Ac
 - Fields that Azure DevOps already stores as Markdown are passed through unchanged (no double-conversion).
 - The parent id is read from the work item's own data (`System.Parent`); the cross-origin "Parent Details" iframe is never accessed.
 - Comments are fetched through your existing signed-in session (no Personal Access Token needed).
+- Inline images stored as Azure DevOps attachments become a labeled link (e.g. `[image: shot.png (Azure DevOps attachment, requires sign-in)](...)`) rather than an embedded image, because those URLs only load inside your authenticated session and would otherwise paste as broken images.
 
 ## Behavior notes
 
 - **First run on a new org:** nothing is pre-selected. Open the gear, tick the sections you want, press Generate. Choices persist per org.
-- **Return visits:** your saved choices are restored. Sections that newly appear on a ticket show up unchecked with a `(new)` badge so the output never changes silently.
+- **Return visits:** your saved choices are restored. Sections that newly appear on a ticket show up unchecked, so the output never changes silently.
 - **Empty selected sections** render a `_(empty)_` placeholder so your scaffold is always present (full-page view). In the dialog/side-panel view the gear lists only the content sections that actually have text, since the page does not expose the empty ones.
 - **Section data is always read live** from Azure DevOps when you open the popup, so navigating between work items in-page (SPA) never needs a page reload.
 

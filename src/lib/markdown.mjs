@@ -1,7 +1,20 @@
 // Assemble the final Markdown document. Pure: the HTML->Markdown converter is
 // injected as `turndown(htmlString) -> markdownString` so this is testable in Node.
 
-const HTML_SNIFF = /<[a-z][\s\S]*>/i;
+// Code spans/fences are stripped before sniffing so HTML/XML quoted inside a code
+// block never forces conversion of an otherwise-Markdown field.
+const CODE_SPANS = /```[\s\S]*?```|~~~[\s\S]*?~~~|`[^`\n]+`/g;
+// A real HTML field (Azure DevOps rich-text) emits wrapped markup: a closing tag,
+// an attribute-bearing tag, a self-closing tag, or a common void element. This must
+// NOT match bare angle-bracket tokens that are legitimate Markdown content, e.g.
+// autolinks (<https://x>), placeholders (<your-org>), or element-name mentions
+// (<video>). The old /<[a-z][\s\S]*>/i matched all of those and Turndown deleted them.
+const HTML_TAG = /<\/[a-z][a-z0-9]*\s*>|<[a-z][a-z0-9]*\s+[a-z:_-]+\s*=|<[a-z][a-z0-9]*(?:\s[^<>]*?)?\/>|<(?:br|hr|img)\b[^<>]*>/i;
+
+/** True when the value contains actual HTML markup (vs. Markdown that merely mentions tags). */
+export function looksLikeHtml(value) {
+  return HTML_TAG.test(String(value).replace(CODE_SPANS, ''));
+}
 
 /** One field -> markdown. format 0 (or sniffed-markdown) passes through verbatim;
  *  format 1 (or sniffed-HTML) is converted. Prevents mangling already-markdown fields. */
@@ -9,7 +22,7 @@ export function fieldToMarkdown(field, { turndown } = {}) {
   const value = field && field.value != null ? String(field.value) : '';
   if (value.trim() === '') return '';
   let fmt = field.format;
-  if (fmt !== 0 && fmt !== 1) fmt = HTML_SNIFF.test(value) ? 1 : 0; // content-sniff unknown
+  if (fmt !== 0 && fmt !== 1) fmt = looksLikeHtml(value) ? 1 : 0; // content-sniff unknown
   if (fmt === 0) return value.trim();
   return ((turndown ? turndown(value) : value) || '').trim();
 }

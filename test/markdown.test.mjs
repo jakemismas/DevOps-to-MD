@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { loadDataProviders } from './helpers/load-fixture.mjs';
 import { getProviders, buildModelFromEmbedded } from '../src/lib/dataproviders.mjs';
 import { buildSectionsFromLayout, injectSyntheticSections } from '../src/lib/sections.mjs';
-import { assembleMarkdown, fieldToMarkdown, commentsToMarkdown, parentToMarkdown } from '../src/lib/markdown.mjs';
+import { assembleMarkdown, fieldToMarkdown, commentsToMarkdown, parentToMarkdown, looksLikeHtml } from '../src/lib/markdown.mjs';
 
 // Deterministic fake converter: marks converted HTML so we can tell convert vs verbatim.
 const fakeTurndown = (html) => 'CONV:' + String(html).replace(/<[^>]+>/g, '').replace(/&nbsp;/gi, ' ').replace(/&quot;/g, '"').replace(/\s+/g, ' ').trim();
@@ -78,6 +78,33 @@ test('fieldToMarkdown content-sniffs unknown format', () => {
   assert.equal(fieldToMarkdown({ value: 'plain **md** text', format: null }, { turndown: fakeTurndown }), 'plain **md** text');
   assert.equal(fieldToMarkdown({ value: '<p>hi</p>', format: null }, { turndown: fakeTurndown }), 'CONV:hi');
   assert.equal(fieldToMarkdown({ value: '', format: 1 }, { turndown: fakeTurndown }), '');
+});
+
+test('looksLikeHtml detects real markup but not Markdown that merely mentions tags', () => {
+  // Real ADO HTML markup -> true
+  assert.equal(looksLikeHtml('<div><b>x</b></div>'), true);   // closing tags
+  assert.equal(looksLikeHtml('<a href="x">y</a>'), true);      // attribute-bearing tag
+  assert.equal(looksLikeHtml('line<br>next'), true);            // void element
+  assert.equal(looksLikeHtml('<img src="a.png" />'), true);     // self-closing
+  // Markdown that only mentions tags / uses angle brackets -> false (must NOT be converted)
+  assert.equal(looksLikeHtml('See <https://example.com> for details'), false); // autolink
+  assert.equal(looksLikeHtml('Use the <video> element and <details>'), false);  // element-name mentions
+  assert.equal(looksLikeHtml('Replace <your-org> with the org name'), false);   // placeholder
+  assert.equal(looksLikeHtml('if a < b and c > d then stop'), false);           // comparisons
+  // HTML/XML quoted inside a code fence -> false (it is literal Markdown content)
+  assert.equal(looksLikeHtml('Example:\n\n```xml\n<members>force-app</members>\n```'), false);
+  assert.equal(looksLikeHtml('Inline `<div>` token only'), false);
+});
+
+test('content-sniff no longer destroys Markdown fields containing angle-bracket tokens', () => {
+  // Regression for the review finding: the old /<[a-z][\s\S]*>/i ran these through Turndown,
+  // which deleted the bracketed content. They must pass through verbatim now.
+  const autolink = 'See <https://example.com> for details';
+  assert.equal(fieldToMarkdown({ value: autolink, format: null }, { turndown: fakeTurndown }), autolink);
+  const fenced = 'Deploy:\n\n```xml\n<members>force-app</members>\n```';
+  assert.equal(fieldToMarkdown({ value: fenced, format: null }, { turndown: fakeTurndown }), fenced);
+  // genuine HTML still converts
+  assert.equal(fieldToMarkdown({ value: '<div>real <b>html</b></div>', format: null }, { turndown: fakeTurndown }), 'CONV:real html');
 });
 
 test('parentToMarkdown / commentsToMarkdown placeholders', () => {
