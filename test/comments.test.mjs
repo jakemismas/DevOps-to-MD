@@ -31,6 +31,24 @@ test('handles empty / missing input', () => {
   assert.deepEqual(normalizeComments({}), []);
 });
 
+test('emits comments oldest-first regardless of input order', () => {
+  const out = normalizeComments([
+    { createdBy: { displayName: 'B' }, createdDate: '2026-05-20T10:00:00Z', text: 'second' },
+    { createdBy: { displayName: 'A' }, createdDate: '2026-05-19T10:00:00Z', text: 'first' },
+    { createdBy: { displayName: 'C' }, createdDate: '2026-05-21T10:00:00Z', text: 'third' },
+  ]);
+  assert.deepEqual(out.map(c => c.text), ['first', 'second', 'third']);
+});
+
+test('undated comments keep relative order and sort after dated ones', () => {
+  const out = normalizeComments([
+    { text: 'no-date-1' },
+    { createdDate: '2026-05-19T10:00:00Z', text: 'dated' },
+    { text: 'no-date-2' },
+  ]);
+  assert.deepEqual(out.map(c => c.text), ['dated', 'no-date-1', 'no-date-2']);
+});
+
 test('fetchAllComments concatenates pages and terminates on no token', async () => {
   const pages = {
     'u?$top=200': { comments: [{ text: 'a' }, { text: 'b' }], continuationToken: 'T1' },

@@ -24,12 +24,12 @@ export function parseAdoUrl(rawUrl) {
   if (host.endsWith('.visualstudio.com')) {
     kind = 'visualstudio';
     org = host.split('.')[0];
-    project = segs.length && segs[0] !== '_workitems' ? segs[0] : null;
+    project = segs.length && !segs[0].startsWith('_') ? segs[0] : null; // _workitems/_boards/_sprints/... are hubs, not projects
     orgBase = u.origin; // org is the subdomain
-  } else if (host === 'dev.azure.com' || host.endsWith('.dev.azure.com')) {
+  } else if (host === 'dev.azure.com') { // exact only; ADO serves work items from the bare host (org is in the path)
     kind = 'devazure';
     org = segs[0] || null;
-    project = segs.length > 1 && segs[1] !== '_workitems' ? segs[1] : null;
+    project = segs.length > 1 && !segs[1].startsWith('_') ? segs[1] : null; // _workitems/_boards/_sprints/... are hubs, not projects
     orgBase = org ? `${u.origin}/${encodeURIComponent(org)}` : u.origin;
   } else {
     return null; // not a recognized ADO host

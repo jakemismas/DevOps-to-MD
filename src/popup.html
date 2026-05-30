@@ -10,12 +10,13 @@
       <div class="org" id="org" title="Azure DevOps organization">…</div>
       <div class="org-sub">Azure DevOps Org</div>
     </div>
-    <button class="gear" id="gear" title="Choose sections" aria-label="Choose sections">&#9881;</button>
+    <button class="gear" id="gear" title="Choose sections" aria-label="Choose sections"
+      aria-expanded="false" aria-controls="panel">&#9881;</button>
   </header>
 
   <section class="panel" id="panel" hidden>
-    <div class="panel-title">Sections to include</div>
-    <div class="section-list" id="sectionList"></div>
+    <div class="panel-title" id="panelTitle">Sections to include</div>
+    <div class="section-list" id="sectionList" role="group" aria-labelledby="panelTitle"></div>
   </section>
 
   <div class="actions">

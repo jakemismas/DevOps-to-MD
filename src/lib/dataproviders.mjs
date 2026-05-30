@@ -92,7 +92,7 @@ export function getParentId(providers) {
     if (rel.rel === HIERARCHY_REVERSE || lt === LINKTYPE_PARENT) {
       if (rel.ID != null) return Number(rel.ID);
       if (typeof rel.url === 'string') {
-        const m = rel.url.match(/\/(\d+)\s*$/);
+        const m = rel.url.match(/\/(\d+)(?:[/?#]|$)/); // tolerate trailing slash/query
         if (m) return Number(m[1]);
       }
     }
@@ -120,6 +120,7 @@ export function buildModelFromEmbedded(providers) {
 
   const modelFields = {};
   for (const def of getProjectFieldDefs(providers)) {
+    if (!def || !def.referenceName) continue; // never key model.fields by "undefined"
     const value = fields[String(def.id)];
     const fmt = flags[String(def.id)];
     modelFields[def.referenceName] = {
@@ -180,7 +181,7 @@ export function buildModelFromRest(restWorkItem, fieldDefs) {
   } else {
     for (const rel of relations) {
       if (rel && rel.rel === HIERARCHY_REVERSE && typeof rel.url === 'string') {
-        const m = rel.url.match(/\/(\d+)\s*$/);
+        const m = rel.url.match(/\/(\d+)(?:[/?#]|$)/); // tolerate trailing slash/query
         if (m) { parentId = Number(m[1]); break; }
       }
     }

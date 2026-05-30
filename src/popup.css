@@ -1,5 +1,7 @@
 * { box-sizing: border-box; }
 
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+
 :root {
   --fg: #1f1f1f;
   --muted: #6b6b6b;

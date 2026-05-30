@@ -26,7 +26,7 @@ test('stored OFF stays OFF and is not "new"', () => {
   assert.equal(newSlugs.size, 0);
 });
 
-test('(new) badge clears after the merged map is persisted', () => {
+test('new-slug flag clears after the merged map is persisted', () => {
   const detected = [{ slug: 'a' }, { slug: 'b' }];
   const first = mergeSelections(undefined, detected);
   assert.ok(first.newSlugs.has('b'));

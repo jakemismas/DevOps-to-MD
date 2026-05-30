@@ -12,8 +12,9 @@ export function storageKeyForOrg(org) {
  *   stored:   { [slug]: boolean } | undefined
  *   detected: [{ slug, ... }]
  * Known slugs keep their stored value. Unknown slugs default OFF and are flagged
- * "new" (so the gear can badge them and output never changes silently). The popup
- * persists the merged map after rendering, so a slug is "new" exactly once.
+ * "new" (so a newly-detected section can never silently change the output). The popup
+ * persists the merged map after rendering, so a slug is "new" exactly once. (The popup
+ * does not render a visual badge; the flag exists to enforce the default-OFF guarantee.)
  */
 export function mergeSelections(stored, detected) {
   const selections = {};

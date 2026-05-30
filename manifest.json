@@ -3,6 +3,7 @@
   "name": "DevOps to Markdown",
   "version": "0.1.0",
   "description": "Convert an Azure DevOps work item into clean Markdown for your clipboard.",
+  "minimum_chrome_version": "102",
   "action": {
     "default_popup": "src/popup.html",
     "default_title": "DevOps to Markdown",
@@ -21,6 +22,6 @@
   },
   "permissions": ["activeTab", "scripting", "storage"],
   "content_security_policy": {
-    "extension_pages": "script-src 'self'; object-src 'self'"
+    "extension_pages": "script-src 'self'; object-src 'self'; base-uri 'none'; frame-ancestors 'none'"
   }
 }
