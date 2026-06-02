@@ -111,19 +111,27 @@ test('builds the fields-list REST URL (org-scoped)', () => {
   assert.equal(buildFieldsUrl(info), 'https://dev.azure.com/dartcontainer/_apis/wit/fields?api-version=7.1');
 });
 
-test('builds the comments REST URL (org-scoped, preview api, renderedText)', () => {
+test('builds the comments REST URL PROJECT-scoped (the ADO comments API requires the project)', () => {
   const info = parseAdoUrl('https://dartcontainer.visualstudio.com/PPM1510%20-%20Pricing%20Excellence/_workitems/edit/470134');
   assert.equal(
     buildCommentsUrl(info),
-    'https://dartcontainer.visualstudio.com/_apis/wit/workItems/470134/comments?$top=200&$expand=renderedText&api-version=7.1-preview.4'
+    'https://dartcontainer.visualstudio.com/PPM1510%20-%20Pricing%20Excellence/_apis/wit/workItems/470134/comments?$top=200&$expand=renderedText&api-version=7.1-preview.4'
   );
 });
 
-test('builds the comments REST URL for dev.azure.com (org in path)', () => {
+test('builds the comments REST URL for dev.azure.com (org and project in path)', () => {
   const info = parseAdoUrl('https://dev.azure.com/dartcontainer/Proj/_workitems/edit/5');
   assert.equal(
     buildCommentsUrl(info, { top: 50 }),
-    'https://dev.azure.com/dartcontainer/_apis/wit/workItems/5/comments?$top=50&$expand=renderedText&api-version=7.1-preview.4'
+    'https://dev.azure.com/dartcontainer/Proj/_apis/wit/workItems/5/comments?$top=50&$expand=renderedText&api-version=7.1-preview.4'
+  );
+});
+
+test('comments URL from a dialog/taskboard view is project-scoped', () => {
+  const info = parseAdoUrl('https://dartcontainer.visualstudio.com/PPM1510%20-%20Pricing%20Excellence/_sprints/taskboard/Team/PPM1510/Sprint%2042?workitem=476404');
+  assert.equal(
+    buildCommentsUrl(info),
+    'https://dartcontainer.visualstudio.com/PPM1510%20-%20Pricing%20Excellence/_apis/wit/workItems/476404/comments?$top=200&$expand=renderedText&api-version=7.1-preview.4'
   );
 });
 
