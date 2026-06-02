@@ -73,9 +73,17 @@ export function buildFieldsUrl(info, { apiVersion = DEFAULT_WIT_API } = {}) {
   return `${info.orgBase}/_apis/wit/fields?api-version=${apiVersion}`;
 }
 
-/** REST: a work item's discussion comments (rendered HTML included). Org-scoped. */
+/**
+ * REST: a work item's discussion comments (rendered HTML included).
+ * PROJECT-scoped: unlike the work-items and fields endpoints, the ADO comments API
+ * requires the project in the path
+ * (`{org}/{project}/_apis/wit/workItems/{id}/comments`); calling it org-scoped returns
+ * 404. `info.project` comes from the tab URL and is present for full-page and
+ * board/sprint/backlog/query views. (If no project can be determined this falls back to
+ * org-scoped and comments will be unavailable, which the popup reports.)
+ */
 export function buildCommentsUrl(info, { top = 200, apiVersion = DEFAULT_COMMENTS_API } = {}) {
-  return `${info.orgBase}/_apis/wit/workItems/${info.workItemId}/comments` +
+  return `${projectBase(info)}/_apis/wit/workItems/${info.workItemId}/comments` +
     `?$top=${top}&$expand=renderedText&api-version=${apiVersion}`;
 }
 

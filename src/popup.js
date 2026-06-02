@@ -171,7 +171,9 @@ async function onGenerate() {
 
   const commentsFailed = needComments && payload.commentsAttempted && !payload.commentsOk;
   if (commentsFailed) {
-    setStatus('Could not load comments. Make sure you are signed in, then reload the work item.', 'warn');
+    setStatus(payload.auth
+      ? 'Could not load comments - sign in to Azure DevOps and reload the work item.'
+      : 'Could not load comments; the rest of the document was generated.', 'warn');
   } else if (model.commentsTruncated) {
     setStatus('Note: only the first pages of a very long discussion were included.', 'warn');
   } else if (needComments && model.comments.length) {
